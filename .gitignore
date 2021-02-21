@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#Telegram bot personal configurations!
+#Uncomment only if you store localy!
+#Upload to origin repo is not secure!
+TelegramConfiguration.json
