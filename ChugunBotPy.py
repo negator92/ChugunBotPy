@@ -1,27 +1,31 @@
+#! /usr/bin/python3
+# -*- coding: utf-8 -*-
+
 import json
 import platform
+import requests
 import telebot
 
-with open("TelegramConfiguration.json", "r", encoding="utf-8") as tgConfigFile:
+with open('TelegramConfiguration.json', 'r', encoding='utf-8') as tgConfigFile:
     jsonText = json.load(tgConfigFile)
 
 
-botToken = jsonText["botToken"]
-adminId = str(jsonText["adminId"])
+botToken = jsonText['botToken']
+adminId = int(jsonText['adminId'])
 
 bot = telebot.TeleBot(botToken)
 
 keyboard = telebot.types.ReplyKeyboardMarkup(True)
-keyboard.row("/about", "/help", "/now")
+keyboard.row("/about", "/help", "/now", "/paw")
 keyboard.row("/wttr", "/owm", "/cbr", "/ping")
 keyboard.row("/mem", "/cpu", "/temp")
 
 
-@bot.message_handler(commands=["start"])
+@bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, f"Я бот.\n" +
-                          f"Приятно познакомиться, {message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.id}, {message.from_user.username}\n" +
-                          f"Пульт управления: /keyboard")
+    bot.reply_to(message, f'Я бот.\n' +
+                          f'Приятно познакомиться, {message.from_user.first_name}, {message.from_user.last_name}, {message.from_user.id}, {message.from_user.username}\n' +
+                          f'Пульт управления: /keyboard')
 
 
 @bot.message_handler(content_types=["text"])
@@ -31,7 +35,31 @@ def text_handler(message):
     if chat_id == adminId:
         if text == '/KEYBOARD':
             bot.send_message(
-                chat_id, "Я могу:\nРассказать о себе: /about\nПомощь: /help\nДоступные команды: /keyboard", reply_markup=keyboard)
+                chat_id,
+                "Я могу:\nРассказать о себе: /about\nПомощь: /help\nДоступные команды: /keyboard",
+                reply_markup=keyboard)
+        elif text == '/PAW':
+            bot.send_message(
+                chat_id, "Will be soon...", reply_markup=keyboard)
+        elif text == '/OWM':
+            s_city = "Moscow,RU"
+            city_id = 524901
+            lat = 55.716071
+            lon = 37.790835
+            owmtoken = jsonText['owmToken']
+            response = ''
+            try:
+                res = requests.get("http://api.openweathermap.org/data/2.5/weather",
+                                   params={'lat': lat,'lon': lon, 'units': 'metric', 'lang': 'ru', 'APPID': owmtoken})
+                data = res.json()
+                response += f'Осадки:{data["weather"][0]["description"]}\n'
+                response += f'Температура:{data["main"]["temp"]}\n'
+                response += f'Минимум:{data["main"]["temp_min"]}\n'
+                response += f'Максимум:{data["main"]["temp_max"]}\n'
+            except Exception as e:
+                response += "Exception (weather):", e
+                pass
+            bot.send_message(chat_id, response, reply_markup=keyboard)
         elif text == '/ABOUT':
             bot.send_message(chat_id,
                              f'{platform.machine.__name__}: {platform.machine()}\n' +
@@ -59,6 +87,5 @@ def text_handler(message):
         else:
             bot.send_message(chat_id, "Не понимаю, что это значит.")
 
-
+print("Bot listening...")
 bot.polling(none_stop=True)
-print(123)
