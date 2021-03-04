@@ -6,12 +6,17 @@ import platform
 import requests
 import telebot
 
+class Configuration(object):
+    def __init__(self, j):
+        self.__dict__ = json.loads(j)
+
 with open('TelegramConfiguration.json', 'r', encoding='utf-8') as tgConfigFile:
-    jsonText = json.load(tgConfigFile)
+    data = tgConfigFile.read()
 
+config = Configuration(data)
 
-botToken = jsonText['botToken']
-adminId = int(jsonText['adminId'])
+botToken = config.botToken
+adminId = int(config.adminId)
 
 bot = telebot.TeleBot(botToken)
 
@@ -46,7 +51,7 @@ def text_handler(message):
             city_id = 524901
             lat = 55.716071
             lon = 37.790835
-            owmtoken = jsonText['owmToken']
+            owmtoken = config.owmToken
             response = ''
             try:
                 res = requests.get("http://api.openweathermap.org/data/2.5/weather",
