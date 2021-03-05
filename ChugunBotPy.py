@@ -44,8 +44,18 @@ def text_handler(message):
                 "Я могу:\nРассказать о себе: /about\nПомощь: /help\nДоступные команды: /keyboard",
                 reply_markup=keyboard)
         elif text == '/PAW':
+            response = requests.get(
+                'https://www.pythonanywhere.com/api/v0/user/{username}/cpu/'.format(username=config.pawUsername),
+                headers={'Authorization': 'Token {token}'.format(token=config.pawToken)}
+            )
+            jResponse = response.json()
+            msg = ''
+            if response.status_code == 200:
+                msg += f'{response.content}'
+            else:
+                msg += 'Got unexpected status code {}: {!r}'.format(response.status_code, response.json())
             bot.send_message(
-                chat_id, "Will be soon...", reply_markup=keyboard)
+                chat_id, msg, reply_markup=keyboard)
         elif text == '/OWM':
             s_city = "Moscow,RU"
             city_id = 524901
