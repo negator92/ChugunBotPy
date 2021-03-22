@@ -75,7 +75,7 @@ def paw(chat_id):
             chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
 
 
-def owm(chat_id, lat=config.lon, lon=config.lat):
+def owm(chat_id, lat=config.lat, lon=config.lon):
     #    s_city = 'Moscow,RU'
     #    city_id = 524901
     # keyboard.add(types.KeyboardButton(text="Запросить геолокацию", request_lon=True))
