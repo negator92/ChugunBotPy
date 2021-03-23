@@ -5,7 +5,7 @@ import json
 import os
 import platform
 import uuid
-
+from datetime import datetime
 import requests
 import telebot
 
@@ -70,7 +70,7 @@ def paw(chat_id):
             bot.send_message(
                 chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
     except Exception as e:
-        mdg = f'Exception: {e}'
+        msg = f'Exception: {e}'
         bot.send_message(
             chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
 
@@ -89,13 +89,19 @@ def owm(chat_id, lat=config.lat, lon=config.lon):
                                     'lon': lon,
                                     'units': 'metric',
                                     'lang': 'ru',
-                                    'APPID': config.owmToken})
+                                    'appId': config.owmToken})
         if response.status_code == 200:
             j_owm = response.json()
-            msg = f'Осадки: *{j_owm["weather"][0]["description"]}*\n' \
+            msg = f'Погода в *{j_owm["sys"]["country"]} {j_owm["name"]}*\n' \
                   f'Температура: *{j_owm["main"]["temp"]}*\n' \
-                  f'Минимум: *{j_owm["main"]["temp_min"]}*\n' \
-                  f'Максимум: *{j_owm["main"]["temp_max"]}*\n'
+                  f'Ощущается как: *{j_owm["main"]["feels_like"]}*\n' \
+                  f'Осадки: *{j_owm["weather"][0]["description"]}*\n' \
+                  f'Влажность: *{j_owm["main"]["humidity"]}%*\n' \
+                  f'Давление: *{round(j_owm["main"]["pressure"] * 0.75006375541921)}mmHg*\n' \
+                  f'Ветер: *{j_owm["wind"]["speed"]}м/с*\n' \
+                  f'Облачность: *{j_owm["clouds"]["all"]}%*\n' \
+                  f'Восход: *{datetime.utcfromtimestamp(int(j_owm["sys"]["sunrise"]) + int(j_owm["timezone"])).strftime("%H-%M-%S")}*\n' \
+                  f'Закат: *{datetime.utcfromtimestamp(int(j_owm["sys"]["sunset"]) + int(j_owm["timezone"])).strftime("%H-%M-%S")}*'
             bot.send_message(
                 chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
         else:
