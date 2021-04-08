@@ -147,6 +147,27 @@ def bot_help(chat_id):
                      parse_mode='markdown')
 
 
+def wttr_by_city(chat_id, city, lang='ru'):
+    try:
+        url = f'http://wttr.in/{city}_Mmtp_lang={lang}.png'
+        response = requests.get(url)
+        if response.status_code == 200:
+            guid = uuid.uuid4()
+            with open(f'./{guid}.png', 'wb') as f:
+                f.write(response.content)
+            bot.send_photo(chat_id, photo=open(f'./{guid}.png', 'rb'), reply_markup=keyboardMarkup,
+                           parse_mode='markdown')
+            os.remove(f'./{guid}.png')
+        else:
+            msg = 'Got unexpected status code {}: {!r}'.format(
+                response.status_code, response.json())
+            bot.send_message(
+                chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
+    except Exception as e:
+        bot.send_message(
+            chat_id, f'Exception: {e}', reply_markup=keyboardMarkup, parse_mode='markdown')
+
+
 def wttr_by_lon(chat_id, latitude=config.lat, longitude=config.lon, lang='ru'):
     try:
         url = f'http://wttr.in/{latitude}%2C{longitude}_Mmtp_lang={lang}.png'
@@ -272,7 +293,13 @@ def text_handler(message):
         elif text == '/HELP':
             bot_help(chat_id)
         elif text == '/WTTR':
-            wttr_by_lon(chat_id)
+            parts = len(message.text.split())
+            if parts == 1:
+                wttr_by_lon(chat_id)
+            if parts == 2:
+                wttr_by_city(chat_id, message.text.split()[1].upper())
+            if parts == 3:
+                wttr_by_lon(chat_id, message.text.split()[1].upper(), message.text.split()[2].upper())
         elif text == '/CBR':
             cbr(chat_id)
         elif text == '/2GIS':
