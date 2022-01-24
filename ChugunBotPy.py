@@ -92,7 +92,7 @@ def owm(chat_id, lat=config.lat, lon=config.lon):
                                     'appId': config.owmToken})
         if response.status_code == 200:
             j_owm = response.json()
-            msg = f'Погода в *{j_owm["sys"]["country"]} {j_owm["name"]}*\n' \
+            msg = f'Погода в *{j_owm["sys"]["country"]} {j_owm["name"]}*:\n' \
                   f'Температура: *{j_owm["main"]["temp"]}*\n' \
                   f'Ощущается как: *{j_owm["main"]["feels_like"]}*\n' \
                   f'Осадки: *{j_owm["weather"][0]["description"]}*\n' \
@@ -100,8 +100,8 @@ def owm(chat_id, lat=config.lat, lon=config.lon):
                   f'Давление: *{round(j_owm["main"]["pressure"] * 0.75006375541921)}mmHg*\n' \
                   f'Ветер: *{j_owm["wind"]["speed"]}м/с*\n' \
                   f'Облачность: *{j_owm["clouds"]["all"]}%*\n' \
-                  f'Восход: *{datetime.utcfromtimestamp(int(j_owm["sys"]["sunrise"]) + int(j_owm["timezone"])).strftime("%H-%M-%S")}*\n' \
-                  f'Закат: *{datetime.utcfromtimestamp(int(j_owm["sys"]["sunset"]) + int(j_owm["timezone"])).strftime("%H-%M-%S")}*'
+                  f'Восход: *{datetime.utcfromtimestamp(int(j_owm["sys"]["sunrise"]) + int(j_owm["timezone"])).strftime("%H:%M:%S")}*\n' \
+                  f'Закат: *{datetime.utcfromtimestamp(int(j_owm["sys"]["sunset"]) + int(j_owm["timezone"])).strftime("%H:%M:%S")}*'
             bot.send_message(
                 chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
         else:
@@ -189,17 +189,24 @@ def wttr_by_lon(chat_id, latitude=config.lat, longitude=config.lon, lang='ru'):
             chat_id, f'Exception: {e}', reply_markup=keyboardMarkup, parse_mode='markdown')
 
 
-def cbr(chat_id, value='USD'):
+def cbr(chat_id, value1, value2):
     try:
         url = 'https://www.cbr-xml-daily.ru/daily_json.js'
         response = requests.get(url)
         if response.status_code == 200:
             j_cbr = response.json()
-            msg = f'{j_cbr["Timestamp"]} *{j_cbr["Valute"][value]["Name"]}*:\n' \
-                  f'сегодня *{j_cbr["Valute"][value]["Value"]}* рублей,\n' \
-                  f'но было *{j_cbr["Valute"][value]["Previous"]}* рублей'
+            msg = f'*{j_cbr["Valute"][value1]["Name"]}*:\n' \
+                  f'сегодня *{j_cbr["Valute"][value1]["Value"]}* рублей,\n' \
+                  f'но было *{j_cbr["Valute"][value1]["Previous"]}* рублей'
+            if value2 == 'EUR':
+                msg += f'\n*{j_cbr["Valute"][value2]["Name"]}*:\n' \
+                  f'сегодня *{j_cbr["Valute"][value2]["Value"]}* рублей,\n' \
+                  f'но было *{j_cbr["Valute"][value2]["Previous"]}* рублей'
+            keyboardMarkupCBR = telebot.types.ReplyKeyboardMarkup(
+                resize_keyboard=True, one_time_keyboard=True)
+            keyboardMarkupCBR.row('/cbr USD', '/cbr EUR', '/keyboard')
             bot.send_message(
-                chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
+                chat_id, msg, reply_markup=keyboardMarkupCBR, parse_mode='markdown')
         else:
             msg = 'Got unexpected status code {}: {!r}'.format(
                 response.status_code, response.json())
@@ -301,7 +308,10 @@ def text_handler(message):
             if parts == 3:
                 wttr_by_lon(chat_id, message.text.split()[1].upper(), message.text.split()[2].upper())
         elif text == '/CBR':
-            cbr(chat_id)
+            if len(message.text.split()) > 1:
+                cbr(chat_id, message.text.split()[1].upper(), '')
+            else:
+                cbr(chat_id, 'USD', 'EUR')
         elif text == '/2GIS':
             doubleGisStatic(chat_id)
         # '/mem', '/cpu', '/temp'"
@@ -311,7 +321,7 @@ def text_handler(message):
 
 # wttr_by_lon(config.adminId)
 # owm(config.adminId)
-# cbr(config.adminId)
+# cbr(config.adminId, 'USD', 'EUR')
 # paw(config.adminId)
 
 
