@@ -30,10 +30,11 @@ def update_config():
     config.botToken = c.botToken
     config.adminId = c.adminId
     config.owmToken = c.owmToken
-    config.lon = c.lon
-    config.lat = c.lat
     config.pawUsername = c.pawUsername
     config.pawToken = c.pawToken
+    config.lon = c.lon
+    config.lat = c.lat
+    config.cgImageURL = c.cgImageURL
 
 
 bot = telebot.TeleBot(config.botToken)
@@ -42,7 +43,7 @@ keyboardMarkup = telebot.types.ReplyKeyboardMarkup(
     resize_keyboard=True, one_time_keyboard=False)
 keyboardMarkup.row('/about', '/help', '/paw')
 keyboardMarkup.row('/wttr', '/owm', '/cbr')
-keyboardMarkup.row('/mem', '/cpu', '/2gis')
+keyboardMarkup.row('/cgimage', '/2gis')
 
 
 def keyboard(chat_id):
@@ -238,6 +239,26 @@ def doubleGisStatic(chat_id, lattitude=config.lat, longtitude=config.lon):
             chat_id, f'Exception: {e}', reply_markup=keyboardMarkup, parse_mode='markdown')
 
 
+def cgiImage(chat_id, cgImageURL):
+    try:
+        response = requests.get(cgImageURL)
+        if response.status_code == 200:
+            guid = uuid.uuid4()
+            with open(f'./{guid}.jpg', 'wb') as f:
+                f.write(response.content)
+            bot.send_photo(chat_id, photo=open(f'./{guid}.jpg', 'rb'), reply_markup=keyboardMarkup,
+                           parse_mode='markdown')
+            os.remove(f'./{guid}.jpg')
+        else:
+            msg = 'Got unexpected status code {}: {!r}'.format(
+                response.status_code, response.json())
+            bot.send_message(
+                chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
+    except Exception as e:
+        bot.send_message(
+            chat_id, f'Exception: {e}', reply_markup=keyboardMarkup, parse_mode='markdown')
+
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     bot.reply_to(message,
@@ -312,9 +333,13 @@ def text_handler(message):
                 cbr(chat_id, message.text.split()[1].upper(), '')
             else:
                 cbr(chat_id, 'USD', 'EUR')
+        elif text == '/CGIMAGE':
+            if len(message.text.split()) > 1:
+                cgiImage(chat_id, message.text.split()[1].lower())
+            else:
+                cgiImage(chat_id, config.cgImageURL)
         elif text == '/2GIS':
             doubleGisStatic(chat_id)
-        # '/mem', '/cpu', '/temp'"
         else:
             bot.send_message(chat_id, 'Do not understand.')
 
@@ -323,7 +348,7 @@ def text_handler(message):
 # owm(config.adminId)
 # cbr(config.adminId, 'USD', 'EUR')
 # paw(config.adminId)
-
+# cgiImage(config.adminId, config.cgImageURL)
 
 print('Bot listening...')
 bot.polling(none_stop=True)
