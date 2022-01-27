@@ -6,6 +6,7 @@ import os
 import platform
 import uuid
 from datetime import datetime
+from datetime import date
 import requests
 import telebot
 
@@ -35,6 +36,7 @@ def update_config():
     config.lon = c.lon
     config.lat = c.lat
     config.cgImageURL = c.cgImageURL
+    config.nager = c.nager
 
 
 bot = telebot.TeleBot(config.botToken)
@@ -43,7 +45,7 @@ keyboardMarkup = telebot.types.ReplyKeyboardMarkup(
     resize_keyboard=True, one_time_keyboard=False)
 keyboardMarkup.row('/about', '/help', '/paw')
 keyboardMarkup.row('/wttr', '/owm', '/cbr')
-keyboardMarkup.row('/cgimage', '/2gis')
+keyboardMarkup.row('/cgimage', '/nager', '/2gis')
 
 
 def keyboard(chat_id):
@@ -259,14 +261,37 @@ def cgiImage(chat_id, cgImageURL):
             chat_id, f'Exception: {e}', reply_markup=keyboardMarkup, parse_mode='markdown')
 
 
+def nager(chat_id, country):
+    try:
+        current_Date = datetime.now().date()
+        url = f'{config.nager}/{current_Date.year}/{country}'
+        response = requests.get(url)
+        if response.status_code == 200:
+            j_cbr = response.json()
+            msg = ''
+            for element in j_cbr:
+                if current_Date < date.fromisoformat(element["date"]):
+                    msg += f'{element["date"]} *{element["localName"]}*,\n'
+            bot.send_message(
+                chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
+        else:
+            msg = 'Got unexpected status code {}: {!r}'.format(
+                response.status_code, response.json())
+            bot.send_message(
+                chat_id, msg, reply_markup=keyboardMarkup, parse_mode='markdown')
+    except Exception as e:
+        bot.send_message(
+            chat_id, f'Exception: {e}', reply_markup=keyboardMarkup, parse_mode='markdown')
+
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     bot.reply_to(message,
                  f'Я бот.\n' +
-                 f'Приятно познакомиться, \n'
-                 f'First name: *{message.from_user.first_name}*, \n' +
-                 f'Last name: *{message.from_user.last_name}*, \n' +
-                 f'User id: *{message.from_user.id}*, \n' +
+                 f'Приятно познакомиться,\n'
+                 f'First name: *{message.from_user.first_name}*,\n' +
+                 f'Last name: *{message.from_user.last_name}*,\n' +
+                 f'User id: *{message.from_user.id}*,\n' +
                  f'Username: *{message.from_user.username}*\n' +
                  f'Пульт управления: /keyboard',
                  reply_markup=keyboardMarkup,
@@ -338,6 +363,11 @@ def text_handler(message):
                 cgiImage(chat_id, message.text.split()[1].lower())
             else:
                 cgiImage(chat_id, config.cgImageURL)
+        elif text == '/NAGER':
+            if len(message.text.split()) > 1:
+                nager(chat_id, message.text.split()[1].lower())
+            else:
+                nager(chat_id, 'RU')
         elif text == '/2GIS':
             doubleGisStatic(chat_id)
         else:
@@ -349,6 +379,7 @@ def text_handler(message):
 # cbr(config.adminId, 'USD', 'EUR')
 # paw(config.adminId)
 # cgiImage(config.adminId, config.cgImageURL)
+# nager(config.adminId, 'RU')
 
 print('Bot listening...')
 bot.polling(none_stop=True)
